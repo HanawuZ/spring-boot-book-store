@@ -11,6 +11,7 @@ import java.sql.Timestamp;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -33,17 +34,18 @@ public class BookService {
     private BookRepository bookRepository;
     private PublisherRepository publisherRepository;
     private AuthorRepository authorRepository;
-    private RedisHashUtil redisHashUtil;
+    // private RedisHashUtil redisHashUtil;
 
     @Autowired
-    public BookService(BookRepository bookRepository, RedisTemplate<Object, Object> redisTemplate,
+    public BookService(BookRepository bookRepository, 
             PublisherRepository publisherRepository, AuthorRepository authorRepository) {
         this.bookRepository = bookRepository;
         this.publisherRepository = publisherRepository;
         this.authorRepository = authorRepository;
-        this.redisHashUtil = new RedisHashUtil(redisTemplate);
+        // this.redisHashUtil = new RedisHashUtil(redisTemplate);
     }
 
+    @Cacheable("books")
     public List<Book> getAllBooks() {
         try {
 
@@ -71,26 +73,27 @@ public class BookService {
         }
     }
 
+    @Cacheable(value = "books", key = "#id")
     public Optional<Book> getBookById(String id) {
         try {
 
-            JSONArray bookFromCache = this.redisHashUtil.get(REDIS_KEY_PREFIX_BOOKS + ":" + id);
-            if (bookFromCache != null && !bookFromCache.isEmpty()) {
-                ObjectMapper objectMapper = new ObjectMapper();
-                objectMapper.registerModule(new JavaTimeModule());
+            // JSONArray bookFromCache = this.redisHashUtil.get(REDIS_KEY_PREFIX_BOOKS + ":" + id);
+            // if (bookFromCache != null && !bookFromCache.isEmpty()) {
+            //     ObjectMapper objectMapper = new ObjectMapper();
+            //     objectMapper.registerModule(new JavaTimeModule());
 
-                // Get single object from JSONArray
-                JSONObject book = bookFromCache.getJSONObject(0);
+            //     // Get single object from JSONArray
+            //     JSONObject book = bookFromCache.getJSONObject(0);
 
-                return Optional.of(objectMapper.readValue(book.toString(), Book.class));
-            }
+            //     return Optional.of(objectMapper.readValue(book.toString(), Book.class));
+            // }
 
             Optional<Book> book = this.bookRepository.getBookById(id);
             if (book.isEmpty()) {
                 return Optional.empty();
             }
 
-            this.redisHashUtil.put(REDIS_KEY_PREFIX_BOOKS, book.get(), Long.valueOf(60), TimeUnit.MINUTES);
+            // this.redisHashUtil.put(REDIS_KEY_PREFIX_BOOKS, book.get(), Long.valueOf(60), TimeUnit.MINUTES);
             return book;
         } catch (Exception e) {
             e.printStackTrace();
@@ -130,7 +133,7 @@ public class BookService {
                 return Optional.empty();
             }
 
-            this.redisHashUtil.put(REDIS_KEY_PREFIX_BOOKS, book, Long.valueOf(60), TimeUnit.MINUTES);
+            // this.redisHashUtil.put(REDIS_KEY_PREFIX_BOOKS, book, Long.valueOf(60), TimeUnit.MINUTES);
             return Optional.of(newBook);
         } catch (Exception e) {
             e.printStackTrace();
@@ -173,7 +176,7 @@ public class BookService {
                 return Optional.empty();
             }
 
-            this.redisHashUtil.put(REDIS_KEY_PREFIX_BOOKS, existingBook, Long.valueOf(60), TimeUnit.MINUTES);
+            // this.redisHashUtil.put(REDIS_KEY_PREFIX_BOOKS, existingBook, Long.valueOf(60), TimeUnit.MINUTES);
             return Optional.of(existingBook);
 
         } catch (Exception e) {
@@ -184,16 +187,9 @@ public class BookService {
 
     public Boolean deleteBook(String id) {
         try {
-            this.redisHashUtil.delete(REDIS_KEY_PREFIX_BOOKS + ":" + id);
+            // this.redisHashUtil.delete(REDIS_KEY_PREFIX_BOOKS + ":" + id);
 
-            Thread deleteThread = new Thread(() -> {
-                try {
-                    this.bookRepository.deleteBookByIdWithAuthors(id);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
-            deleteThread.start();
+            this.bookRepository.deleteBookByIdWithAuthors(id);
 
             return true;
         } catch (Exception e) {

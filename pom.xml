@@ -107,6 +107,15 @@
 			<version>2.15.0</version> <!-- Make sure this version matches your Jackson version -->
 		</dependency>
 
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+
+
+		<!-- https://mvnrepository.com/artifact/org.hibernate/hibernate-ehcache -->
+
+
 
 
 	</dependencies>
